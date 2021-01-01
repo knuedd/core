@@ -31,6 +31,7 @@ SENSOR_TYPE_HUMIDITY = "humidity"
 SENSOR_TYPE_POWER = "powersensor"
 SENSOR_TYPE_TEMPERATURE = "temperature"
 SENSOR_TYPE_WINDOWHANDLE = "windowhandle"
+SENSOR_TYPE_MAGNETCONTACT = "magnetcontact"
 
 SENSOR_TYPES = {
     SENSOR_TYPE_HUMIDITY: {
@@ -53,6 +54,12 @@ SENSOR_TYPES = {
     },
     SENSOR_TYPE_WINDOWHANDLE: {
         "name": "WindowHandle",
+        "unit": None,
+        "icon": "mdi:window",
+        "class": None,
+    },
+    SENSOR_TYPE_MAGNETCONTACT: {
+        "name": "MagnetContact",
         "unit": None,
         "icon": "mdi:window",
         "class": None,
@@ -99,6 +106,9 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
 
     elif sensor_type == SENSOR_TYPE_WINDOWHANDLE:
         add_entities([EnOceanWindowHandle(dev_id, dev_name)])
+
+    elif sensor_type == SENSOR_TYPE_MAGNETCONTACT:
+        add_entities([EnOceanMagnetContact(dev_id, dev_name)])
 
 
 class EnOceanSensor(EnOceanEntity, RestoreEntity):
@@ -261,5 +271,29 @@ class EnOceanWindowHandle(EnOceanSensor):
             self._state = STATE_OPEN
         if action == 0x05:
             self._state = "tilt"
+
+        self.schedule_update_ha_state()
+
+
+class EnOceanMagnetContact(EnOceanSensor):
+    """Representation of an EnOcean magnet contact device.
+
+    EEPs (EnOcean Equipment Profiles):
+    - D5-00-01 (Single Input Contact)
+    """
+
+    def __init__(self, dev_id, dev_name):
+        """Initialize the EnOcean magnet contact sensor device."""
+        super().__init__(dev_id, dev_name, SENSOR_TYPE_MAGNETCONTACT)
+
+    def value_changed(self, packet):
+        """Update the internal state of the sensor."""
+
+        action = packet.data[1]
+
+        if action == 0x09:
+            self._state = STATE_CLOSED
+        if action == 0x08:
+            self._state = STATE_OPEN
 
         self.schedule_update_ha_state()
